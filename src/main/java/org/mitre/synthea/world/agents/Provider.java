@@ -104,6 +104,15 @@ public class Provider implements QuadTreeElement, Serializable {
   // row: year, column: type, value: count
   private transient Table<Integer, String, AtomicInteger> utilization;
 
+  public String getTelecom()
+  {
+    if (phone != null && phone.length()==10)
+    {
+      String out ="tel:+1("+phone.substring(0,3)+")"+phone.substring(3,6)+"-"+phone.substring(6,10);
+      return out;
+    }
+    return null;
+  }
   /**
    * Java Serialization support for the utilization field.
    * @param oos stream to write to
