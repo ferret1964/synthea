@@ -212,8 +212,7 @@ shadowJar {
     versionText = versionFile.text.trim()
   }
   transform(com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCacheFileTransformer)
-  archiveBaseName.set('synthea-with-dependencies')
-  archiveClassifier.set('')
+  archiveClassifier.set('with-dependencies')
   archiveVersion.set('')
   manifest {
     attributes(
@@ -342,7 +341,7 @@ artifacts {
 }
 
 def mavenGroup = 'org.mitre.synthea'
-def mavenVersion = '4.0.0-SNAPSHOT'
+def mavenVersion = '3.2.1-SNAPSHOT'
 
 publishing {
     publications {
