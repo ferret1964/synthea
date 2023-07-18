@@ -33,13 +33,17 @@ import org.mitre.synthea.world.agents.Clinician;
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 /**
  * HealthRecord contains all the coded entries in a person's health record. This
  * class represents a logical health record. Exporters will convert this health
  * record into various standardized formats.
  */
 public class HealthRecord implements Serializable {
-
+  private static Logger logger = LoggerFactory.getLogger(HealthRecord.class);
   public static final String ENCOUNTERS = "encounters";
   public static final String PROCEDURES = "procedures";
   public static final String MEDICATIONS = "medications";
@@ -671,7 +675,14 @@ public class HealthRecord implements Serializable {
       imagingStudies = new ArrayList<ImagingStudy>();
       devices = new ArrayList<Device>();
       supplies = new ArrayList<Supply>();
-      this.claim = new Claim(this, person);
+      try {
+        this.claim = new Claim(this, person);
+      }
+      catch (RuntimeException exp)
+      {
+        //Bad claims data will throw a runtime exception.
+        logger.warn("Not claim created", exp);
+      }
     }
 
     /**
