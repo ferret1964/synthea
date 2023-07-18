@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
 import org.mitre.synthea.world.agents.Provider.ProviderType;
+import org.mitre.synthea.world.concepts.HealthRecord;
 import org.mitre.synthea.world.concepts.HealthRecord.EncounterType;
 
 public class ProviderFinderNearest implements IProviderFinder {
@@ -52,5 +53,10 @@ public class ProviderFinderNearest implements IProviderFinder {
     } else {
       return null;
     }
+  }
+
+  @Override
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, HealthRecord.Code reason) {
+    return find(providers, person, service, time);
   }
 }

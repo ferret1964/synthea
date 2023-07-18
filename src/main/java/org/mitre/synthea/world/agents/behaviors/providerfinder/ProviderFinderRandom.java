@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
+import org.mitre.synthea.world.concepts.HealthRecord;
 import org.mitre.synthea.world.concepts.HealthRecord.EncounterType;
 
 public class ProviderFinderRandom implements IProviderFinder {
@@ -28,5 +29,10 @@ public class ProviderFinderRandom implements IProviderFinder {
       // there are a few equally good options, pick one randomly.
       return options.get(person.randInt(options.size()));
     }
+  }
+
+  @Override
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, HealthRecord.Code reason) {
+    return find(providers, person, service, time);
   }
 }

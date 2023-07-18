@@ -5,6 +5,7 @@ import java.util.List;
 import org.mitre.synthea.world.agents.Person;
 import org.mitre.synthea.world.agents.Provider;
 import org.mitre.synthea.world.concepts.HealthRecord.EncounterType;
+import org.mitre.synthea.world.concepts.HealthRecord.Code;
 
 /**
  * Find a particular provider by service.
@@ -19,4 +20,5 @@ public interface IProviderFinder {
    * @return Service provider or null if none is available.
    */
   public Provider find(List<Provider> providers, Person person, EncounterType service, long time);
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, Code reason);
 }
