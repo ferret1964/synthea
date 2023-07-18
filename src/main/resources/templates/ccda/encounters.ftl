@@ -27,21 +27,26 @@
             <templateId root="2.16.840.1.113883.10.20.22.4.32"/>
             <!-- Service Delivery Location template see https://terminology.hl7.org/5.1.0/CodeSystem-v3-RoleCode.html#v3-RoleCode-HOSP -->
             <id extension = "${entry.provider.npi}" />
+            <#if entry.provider.cmsProviderType?has_content>
             <code code="${entry.provider.cmsProviderType}" codeSystem="http://terminology.hl7.org/ValueSet/v3-ServiceDeliveryLocationRoleType"
                   codeSystemName="RoleCode"
                   />
+            </#if>
             <addr>
               <streetAddressLine>${entry.provider.address}</streetAddressLine>
               <city>${entry.provider.city}</city>
               <state>${entry.provider.state}</state>
               <postalCode>${entry.provider.zip}</postalCode>
             </addr>
-            <telecom value="${entry.provider.telecom}"/>
+            <#if entry.provider.telecom?has_content>
+              <telecom value="${entry.provider.telecom}"/>
+            </#if>
             <playingEntity classCode="PLC">
               <name>${entry.provider.name}</name>
             </playingEntity>
           </participantRole>
         </participant>
+        <#if entry.reason??>
         <entryRelationship typeCode="RSON">
           <observation classCode="OBS" moodCode="EVN">
             <templateId root="2.16.840.1.113883.10.20.22.4.19" extension="2014-06-09"/>
@@ -53,11 +58,13 @@
             </text>
             <statusCode code="completed"/>
             <effectiveTime>
-              <low value="20220122015318"/>
+              <low value="${entry.start?number_to_date?string["yyyyMMddHHmmss"]}"/>
+              <#if entry.stop != 0><high value="${entry.stop?number_to_date?string["yyyyMMddHHmmss"]}"/></#if>
             </effectiveTime>
-            <value xsi:type="CD" code="109838007" codeSystem="2.16.840.1.113883.6.96" codeSystemName="SNOMED CT" displayName="Overlapping malignant neoplasm of colon"/>
+            <value xsi:type="CD" code="${entry.reason.code}" codeSystem="2.16.840.1.113883.6.96" codeSystemName="SNOMED CT" displayName="${entry.reason.display}"/>
           </observation>
         </entryRelationship>
+        </#if>
       </encounter>
     </entry>
     </#list>
