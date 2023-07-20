@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mitre.synthea.engine.State;
 import org.mitre.synthea.export.JSONSkip;
 import org.mitre.synthea.helpers.Config;
 import org.mitre.synthea.helpers.DefaultRandomNumberGenerator;
@@ -36,9 +37,11 @@ import org.mitre.synthea.world.geography.Demographics;
 import org.mitre.synthea.world.geography.Location;
 import org.mitre.synthea.world.geography.quadtree.QuadTree;
 import org.mitre.synthea.world.geography.quadtree.QuadTreeElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Provider implements QuadTreeElement, Serializable {
-
+  private static Logger logger = LoggerFactory.getLogger(Provider.class);
   public enum ProviderType {
     DIALYSIS, HOME_HEALTH, HOSPICE, HOSPITAL, LONG_TERM,
     NURSING, PRIMARY, REHAB, URGENT, VETERAN, PHARMACY, IHS;
@@ -196,6 +199,9 @@ public class Provider implements QuadTreeElement, Serializable {
   public boolean hasService(EncounterType service) {
     return servicesProvided.contains(service);
   }
+  public boolean hasService(EncounterType service, String specialty) {
+    return servicesProvided.contains(service) && clinicianMap.containsKey(specialty);
+  }
 
   public void incrementEncounters(EncounterType service, int year) {
     increment(year, ENCOUNTERS);
@@ -298,6 +304,29 @@ public class Provider implements QuadTreeElement, Serializable {
     }
     return null;
   }
+  /**
+   * Find specific service provider for the given person.
+   * @param person The patient who requires the service.
+   * @param service The service required. For example, EncounterType.AMBULATORY.
+   * @param time The date/time within the simulated world, in milliseconds.
+   * @return Service provider or null if none is available.
+   */
+  public static Provider findService(Person person, EncounterType service, long time, String specialty) {
+    double maxDistance = MAX_PROVIDER_SEARCH_DISTANCE;
+    double degrees = 0.125;
+    List<Provider> options = null;
+    Provider provider = null;
+    while (degrees <= maxDistance) {
+      options = findProvidersByLocation(person, degrees);
+      provider = providerFinder.find(options, person, service, time, specialty);
+      if (provider != null) {
+        return provider;
+      }
+      degrees *= 2.0;
+    }
+    return null;
+  }
+
 
   /**
    * Find a provider that does not already have a healthrecord for the given person.
@@ -460,7 +489,7 @@ public class Provider implements QuadTreeElement, Serializable {
     if (optional && (filename == null || filename.length() == 0)) {
       return;
     }
-
+    //System.out.println("Loading Providers for "+filename);
     String resource = Utilities.readResource(filename, true, true);
     Iterator<? extends Map<String,String>> csv = SimpleCSV.parseLineByLine(resource);
 
@@ -494,18 +523,53 @@ public class Provider implements QuadTreeElement, Serializable {
         parsed.location = location;
 
         if (row.get("hasSpecialties") == null
-            || row.get("hasSpecialties").equalsIgnoreCase("false")) {
+            || !row.get("hasSpecialties").equalsIgnoreCase("TRUE")) {
           parsed.clinicianMap.put(ClinicianSpecialty.GENERAL_PRACTICE,
               parsed.generateClinicianList(1, ClinicianSpecialty.GENERAL_PRACTICE,
                   random));
         } else {
+          int defaultSpecialtyCount = 0;
+          if (row.get("defaultSpecialties") != null)
+          {
+            String count = row.get("defaultSpecialties");
+            if (count != null && !count.trim().equals("")
+                    && !count.trim().equals("0")) {
+              defaultSpecialtyCount = Integer.parseInt(row.get("defaultSpecialties"));
+              }
+          }
+
           for (String specialty : ClinicianSpecialty.getSpecialties()) {
             String specialtyCount = row.get(specialty);
-            if (specialtyCount != null && !specialtyCount.trim().equals("")
-                && !specialtyCount.trim().equals("0")) {
-              parsed.clinicianMap.put(specialty,
-                  parsed.generateClinicianList(Integer.parseInt(row.get(specialty)), specialty,
-                      random));
+            if (defaultSpecialtyCount == 0)
+            {
+              if (specialtyCount != null && !specialtyCount.trim().equals("")
+                  && !specialtyCount.trim().equals("0")) {
+                parsed.clinicianMap.put(specialty,
+                    parsed.generateClinicianList(Integer.parseInt(row.get(specialty)), specialty,
+                        random));
+                //System.out.println(parsed.name+" has specialty "+specialty+" with "+row.get(specialty)+" providers");
+              }
+            }
+            else {
+              //We will default Missing Columns and Nulls
+              if (specialtyCount == null || specialtyCount.trim().equals(""))
+              {
+
+                parsed.clinicianMap.put(specialty,
+                        parsed.generateClinicianList(defaultSpecialtyCount, specialty,
+                                random));
+                //System.out.println(parsed.name+" has default specialty "+specialty+" with "+row.get(specialty)+" providers");
+              }
+              else {
+                //If the specialty is defined and set zero we ignore it.
+                if (!specialtyCount.trim().equals("0"))
+                {
+                  parsed.clinicianMap.put(specialty,
+                          parsed.generateClinicianList(Integer.parseInt(row.get(specialty)), specialty,
+                                  random));
+                  //System.out.println(parsed.name+" has specialty "+specialty+" with "+row.get(specialty)+" providers");
+                }
+              }
             }
           }
           if (row.get(ClinicianSpecialty.GENERAL_PRACTICE).equals("0")) {
