@@ -12,8 +12,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+//import java.util.logging.Level;
+//import java.util.logging.Logger;
+
+import org.checkerframework.checker.units.qual.C;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math.ode.DerivativeException;
@@ -58,6 +62,9 @@ import org.mitre.synthea.world.concepts.HealthRecord.Report;
 import org.simulator.math.odes.MultiTable;
 
 public abstract class State implements Cloneable, Serializable {
+
+  private static Logger logger = LoggerFactory.getLogger(State.class);
+
   public Module module;
   public String name;
   public Long entered;
@@ -413,9 +420,9 @@ public abstract class State implements Cloneable, Serializable {
           }
         }
       } catch (DerivativeException ex) {
-        Logger.getLogger(State.class.getName()).log(Level.SEVERE, "Unable to solve simulation \""
-            + model + "\" at time step " + time + " for person "
-            + person.attributes.get(Person.ID), ex);
+        logger.error("Unable to solve simulation \""
+                + model + "\" at time step " + time + " for person "
+                + person.attributes.get(Person.ID), ex);
       }
       return true;
     }
@@ -913,9 +920,33 @@ public abstract class State implements Cloneable, Serializable {
         } else {
           type = EncounterType.fromString(encounterClass);
         }
+
         String specialty = ClinicianSpecialty.GENERAL_PRACTICE;
         if (this.module.specialty != null) {
           specialty = this.module.specialty;
+        }
+        //Code to check if the reason for the encounter should use a speciality
+        if (this.module.specialty== null && reason != null) {
+          Code chk = null;
+          if (person.attributes.containsKey(reason)) {
+            Object value = person.attributes.get(reason);
+            if (value instanceof Entry) {
+              Entry condition = (Entry) person.attributes.get(reason);
+              chk = condition.codes.get(0);
+            } else if (value instanceof Code) {
+              chk = (Code) value;
+            }
+          } else if (person.hadPriorState(reason)) {
+            // loop through the present conditions, the condition "name" will match
+            // the name of the ConditionOnset state (aka "reason")
+            for (Entry entry : person.record.present.values()) {
+              if (reason.equals(entry.name)) {
+                chk = entry.codes.get(0);
+                break;
+              }
+            }
+           }
+          specialty = getRequiredSpeciality(chk);
         }
         HealthRecord.Encounter encounter = EncounterModule.createEncounter(person, time, type,
             specialty, null, module.name);
@@ -951,6 +982,33 @@ public abstract class State implements Cloneable, Serializable {
         return true;
       }
     }
+      public  String getRequiredSpeciality(HealthRecord.Code reason)
+      {
+        if (reason!= null) {
+          logger.info("Trying to find required speciality for code {}", reason);
+          // System.out.println("Checking code " + reason);
+          if (reason.system.compareTo("SNOMED-CT")==0)
+          {
+            switch (reason.code)
+            {
+              case "275978004":
+              case "93761005":
+              case "109838007":
+              case "126906006":
+              case "363406005":
+              case "94260004":
+              {
+                return ClinicianSpecialty.MEDICAL_ONCOLOGY;
+              }
+              default:
+              {
+                return ClinicianSpecialty.GENERAL_PRACTICE;
+              }
+            }
+          }
+        }
+        return ClinicianSpecialty.GENERAL_PRACTICE;
+      }
 
     private void diagnosePastConditions(Person person, long time) {
       // reminder: history[0] is current state, history[size-1] is Initial
