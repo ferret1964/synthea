@@ -721,11 +721,15 @@ public class HealthRecord implements Serializable {
      * @return A single observation or null
      */
     public Observation findObservation(String code) {
-      return observations
-          .stream()
-          .filter(o -> o.type.equals(code))
-          .findFirst()
-          .orElse(null);
+      if (!observations.isEmpty())
+      {
+        return observations
+                .stream()
+                .filter(o -> o.type.equals(code))
+                .findFirst()
+                .orElse(null);
+      }
+      return null;
     }
 
     /**
