@@ -412,8 +412,11 @@ public class Module implements Cloneable, Serializable {
       Long exited = current.exited;
       nextStateName = current.transition(person, time);
       // System.out.println(" Transitioning to " + nextStateName);
-      current = states.get(nextStateName).clone(); // clone the state so we don't dirty the original
-      person.history.add(0, current);
+      if (states.get(nextStateName) != null)
+      {
+        current = states.get(nextStateName).clone(); // clone the state so we don't dirty the original
+        person.history.add(0, current);
+      }
       if (exited != null && exited < time) {
         // stop if the patient died in the meantime...
         if (terminateOnDeath && !person.alive(exited)) {
