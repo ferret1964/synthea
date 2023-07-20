@@ -32,7 +32,25 @@ public class ProviderFinderRandom implements IProviderFinder {
   }
 
   @Override
-  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, HealthRecord.Code reason) {
-    return find(providers, person, service, time);
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, String specialty) {
+    //System.out.println(this.getClass().getSimpleName()+" looking for "+specialty);
+    List<Provider> options = new ArrayList<Provider>();
+
+    for (Provider provider : providers) {
+      if (provider.accepts(person, time)
+              && (provider.hasService(service, specialty) || service == null)) {
+        options.add(provider);
+      }
+    }
+
+    if (options.isEmpty()) {
+      return null;
+    } else if (options.size() == 1) {
+      return options.get(0);
+    } else {
+      // there are a few equally good options, pick one randomly.
+      return options.get(person.randInt(options.size()));
+    }
   }
+
 }

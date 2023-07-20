@@ -20,5 +20,5 @@ public interface IProviderFinder {
    * @return Service provider or null if none is available.
    */
   public Provider find(List<Provider> providers, Person person, EncounterType service, long time);
-  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, Code reason);
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, String specialty);
 }

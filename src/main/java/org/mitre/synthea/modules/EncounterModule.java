@@ -14,9 +14,11 @@ import org.mitre.synthea.world.concepts.ClinicianSpecialty;
 import org.mitre.synthea.world.concepts.HealthRecord.Code;
 import org.mitre.synthea.world.concepts.HealthRecord.Encounter;
 import org.mitre.synthea.world.concepts.HealthRecord.EncounterType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class EncounterModule extends Module {
-
+  private static Logger logger = LoggerFactory.getLogger(EncounterModule.class);
   public static final String ACTIVE_WELLNESS_ENCOUNTER = "active_wellness_encounter";
   public static final String ACTIVE_URGENT_CARE_ENCOUNTER = "active_urgent_care_encounter";
   public static final String ACTIVE_EMERGENCY_ENCOUNTER = "active_emergency_encounter";
@@ -151,13 +153,28 @@ public final class EncounterModule extends Module {
     if (code != null) {
       encounter.codes.add(code);
     }
-    // assign a provider organization
+    // assign a provider organization - If a specialty exists we should us a provider that has that specialty
+
     Provider prov = null;
     if (specialty.equalsIgnoreCase(ClinicianSpecialty.CARDIOLOGY)) {
       // Get the first provider in the list that was loaded
       prov = Provider.getProviderList().get(0);
     } else {
-      prov = person.getProvider(type, time);
+      if (specialty.equalsIgnoreCase(ClinicianSpecialty.GENERAL_PRACTICE)) {
+        prov = person.getProvider(type, time);
+      }
+      else {
+        prov = person.getProvider(type, time, specialty);
+        if (prov == null)
+        {
+           logger.warn("Unable to find a provider for specialty {}, using unspecialized provider", specialty);
+           prov = person.getProvider(type, time);
+        }
+        else
+        {
+          //System.out.println("Found "+prov.name+" for Specialty - "+specialty);
+        }
+      }
     }
     prov.incrementEncounters(type, year);
     encounter.provider = prov;

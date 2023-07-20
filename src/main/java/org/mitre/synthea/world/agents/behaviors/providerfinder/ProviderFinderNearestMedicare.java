@@ -45,7 +45,34 @@ public class ProviderFinderNearestMedicare implements IProviderFinder {
   }
 
   @Override
-  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, HealthRecord.Code reason) {
-    return find(providers, person, service, time);
+  public Provider find(List<Provider> providers, Person person, EncounterType service, long time, String specialty) {
+    //System.out.println(this.getClass().getSimpleName()+" looking for "+specialty);
+
+    Stream<Provider> options = providers.stream()
+            // Find providers that accept the person
+            .filter(p -> p.accepts(person, time));
+
+    // Find providers with the requested service & specialty
+    options = options.filter(p -> p.hasService(service, specialty));
+
+    // Filter to only Medicare providers...
+    options = options.filter(p -> (p.cmsProviderNum != null && !p.cmsProviderNum.isBlank()));
+
+    // Sort by distance
+    Map<Double, List<Provider>> groupedByDistance =
+            options.collect(groupingBy(p -> p.getLonLat().distance(person.getLonLat())));
+    Optional<Double> minDistance = groupedByDistance.keySet().stream().min(Double::compare);
+    if (minDistance.isPresent()) {
+      List<Provider> closestProviderGroup = groupedByDistance.get(minDistance.get());
+      if (closestProviderGroup.size() > 1) {
+        return closestProviderGroup.get(person.randInt(closestProviderGroup.size()));
+      } else {
+        return closestProviderGroup.get(0);
+      }
+    } else {
+      return null;
+    }
+
   }
+
 }
