@@ -17,9 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -349,7 +347,10 @@ public class Generator {
 
     }
 
-    ExecutorService threadPool = Executors.newFixedThreadPool(threadPoolSize);
+    //ExecutorService threadPool = Executors.newFixedThreadPool(threadPoolSize);
+    ThreadPoolExecutor threadPool = new ThreadPoolExecutor(threadPoolSize, threadPoolSize,
+            0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>());
 
     if (options.initialPopulationSnapshotPath != null) {
       FileInputStream fis = null;
@@ -379,8 +380,9 @@ public class Generator {
       for (int i = 0; i < this.options.population; i++) {
         final int index = i;
         final long seed = this.populationRandom.randLong();
-        threadPool.submit(() -> generatePerson(index, seed));
-      }
+          threadPool.submit(() -> generatePerson(index, seed));
+        }
+
     } else {
       // we have a single fixed seed to generate, don't bother with threadpool
       generatePerson(0, this.options.singlePersonSeed);
@@ -388,8 +390,23 @@ public class Generator {
 
     try {
       threadPool.shutdown();
+      int trys = 0;
+      int lastCount = 0;
       while (!threadPool.awaitTermination(30, TimeUnit.SECONDS)) {
         System.out.println("Waiting for threads to finish... " + threadPool);
+        int curSize = threadPool.getQueue().size();
+        if ( curSize == lastCount) {
+          trys++;
+          if (trys > 5) {
+            System.out.println("Threads not stopping. Attempting to shut down associated thread pool.");
+            threadPool.shutdownNow();
+            break;
+          }
+        }
+        else {
+          trys = 0;
+          lastCount = curSize;
+        }
       }
     } catch (InterruptedException e) {
       System.out.println("Generator interrupted. Attempting to shut down associated thread pool.");
