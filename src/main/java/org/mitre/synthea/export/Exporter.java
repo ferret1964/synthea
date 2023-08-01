@@ -38,6 +38,7 @@ import org.mitre.synthea.world.concepts.HealthRecord.Encounter;
 import org.mitre.synthea.world.concepts.HealthRecord.Observation;
 import org.mitre.synthea.world.concepts.HealthRecord.Report;
 
+
 public abstract class Exporter {
 
   /**
@@ -654,6 +655,12 @@ public abstract class Exporter {
 
   private static boolean entryWithinTimeRange(
       HealthRecord.Entry e, long cutoffDate, long endTime) {
+
+    if (e == null)
+    {
+    	//Null Entries are not in range
+    	return false;
+    }
 
     if (e.start > cutoffDate && e.start <= endTime) {
       return true; // trivial case, when we're within the last __ years
