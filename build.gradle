@@ -13,6 +13,8 @@ buildscript {
     classpath "gradle.plugin.com.github.johnrengelman:shadow:7.1.2"
   }
 }
+
+
 apply plugin: "com.github.johnrengelman.shadow"
 
 // Apply the java plugin to add support for Java
@@ -26,6 +28,7 @@ apply plugin: 'checkstyle'
 apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
+
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -113,7 +116,12 @@ dependencies {
   // JfreeChart for drawing physiology charts
   implementation 'org.jfree:jfreechart:1.5.3'
 
-  // Use JUnit test framework
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.28'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.28'
+
   testImplementation('junit:junit') {
     version {
       strictly '4.13.2'
