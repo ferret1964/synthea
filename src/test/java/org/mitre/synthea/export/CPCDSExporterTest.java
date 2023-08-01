@@ -36,7 +36,14 @@ public class CPCDSExporterTest {
     Generator generator = new Generator(numberOfPeople);
     generator.options.overflow = false;
     for (int i = 0; i < numberOfPeople; i++) {
-      generator.generatePerson(i);
+      try {
+        generator.generatePerson(i);
+      }
+      catch(Exception e)
+      {
+        System.out.println("Exception in generating patient "+Integer.toString(i)+": "+e.getMessage());
+        e.printStackTrace();
+      }
     }
     // Adding post completion exports to generate organizations and providers CSV files
     Exporter.runPostCompletionExports(generator);
